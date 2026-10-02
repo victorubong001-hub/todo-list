@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>To-do list</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#e9eff1;--card:#fff;--ink:#1c2a33;--mute:#7d8e99;--line:#d5dee3;--acc:#0e6b6b;--accink:#fff;--danger:#b3412f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181d;--card:#18232a;--ink:#e6eef2;--mute:#7f929d;--line:#2a3943;--acc:#4fc1b8;--accink:#0b1a1a;--danger:#e3856f}}
+:root[data-theme="dark"]{--bg:#10181d;--card:#18232a;--ink:#e6eef2;--mute:#7f929d;--line:#2a3943;--acc:#4fc1b8;--accink:#0b1a1a;--danger:#e3856f}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:32px 16px}
+main{width:100%;max-width:520px}
+h1{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 20px}
+form{display:flex;gap:8px;margin-bottom:16px}
+input[type=text]{flex:1;min-width:0;font:inherit;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+.add{padding:0 18px;border:0;border-radius:10px;background:var(--acc);color:var(--accink);font-weight:600}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input[type=text]:focus{outline:2px solid var(--acc);border-color:transparent}
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tab{border:0;background:none;color:var(--mute);padding:6px 12px;border-radius:8px;font-weight:600}
+.tab[aria-pressed=true]{background:var(--card);color:var(--ink)}
+ul{list-style:none;margin:0;padding:0;background:var(--card);border-radius:14px;border:1px solid var(--line)}
+li{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--line)}
+li:last-child{border-bottom:0}
+li input{width:20px;height:20px;accent-color:var(--acc);flex:none}
+li span{flex:1;word-break:break-word;line-height:1.35}
+li.done span{color:var(--mute);text-decoration:line-through}
+.del{border:0;background:none;color:var(--mute);font-size:1.3rem;line-height:1;padding:4px 8px;border-radius:6px}
+.del:hover{color:var(--danger)}
+.empty{padding:28px 16px;text-align:center;color:var(--mute);background:var(--card);border-radius:14px;border:1px dashed var(--line)}
+footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--mute);font-size:.95rem}
+.clear{border:0;background:none;color:var(--mute);text-decoration:underline;padding:4px}
+.clear:hover{color:var(--ink)}
+@media (prefers-reduced-motion:no-preference){li{transition:background .15s}}
+</style>
+</head>
+<body>
+<main>
+  <h1>To-do</h1>
+  <p class="sub" id="sub"></p>
+  <form id="f"><input type="text" id="in" placeholder="Add a task" aria-label="New task" autocomplete="off"><button class="add" type="submit">Add task</button></form>
+  <div class="tabs" id="tabs">
+    <button class="tab" data-f="all" aria-pressed="true">All</button>
+    <button class="tab" data-f="active" aria-pressed="false">Active</button>
+    <button class="tab" data-f="done" aria-pressed="false">Done</button>
+  </div>
+  <div id="list"></div>
+  <footer><span id="count"></span><button class="clear" id="clr">Clear completed</button></footer>
+</main>
+<script>
+var KEY="todo-items-v1",items=[],filter="all";
+try{items=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){items=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}}
+function render(){
+  var vis=items.filter(function(t){return filter==="all"||(filter==="done")===t.done});
+  var box=document.getElementById("list");box.innerHTML="";
+  if(!vis.length){
+    var e=document.createElement("div");e.className="empty";
+    e.textContent=items.length?"Nothing here. Try another filter.":"No tasks yet. Add your first one above.";
+    box.appendChild(e);
+  }else{
+    var ul=document.createElement("ul");
+    vis.forEach(function(t){
+      var li=document.createElement("li");if(t.done)li.className="done";
+      var cb=document.createElement("input");cb.type="checkbox";cb.checked=t.done;cb.setAttribute("aria-label","Mark done: "+t.text);
+      cb.onchange=function(){t.done=cb.checked;save();render()};
+      var sp=document.createElement("span");sp.textContent=t.text;
+      var d=document.createElement("button");d.className="del";d.textContent="\u00d7";d.setAttribute("aria-label","Delete task: "+t.text);
+      d.onclick=function(){items=items.filter(function(x){return x!==t});save();render()};
+      li.append(cb,sp,d);ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+  var left=items.filter(function(t){return!t.done}).length;
+  document.getElementById("count").textContent=left+(left===1?" task left":" tasks left");
+  document.getElementById("sub").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+  document.getElementById("clr").style.visibility=items.some(function(t){return t.done})?"visible":"hidden";
+  document.querySelectorAll(".tab").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.f===filter)});
+}
+document.getElementById("f").onsubmit=function(ev){
+  ev.preventDefault();var i=document.getElementById("in"),v=i.value.trim();
+  if(!v)return;items.unshift({text:v,done:false});i.value="";save();render();
+};
+document.getElementById("tabs").onclick=function(ev){var f=ev.target.dataset.f;if(f){filter=f;render()}};
+document.getElementById("clr").onclick=function(){items=items.filter(function(t){return!t.done});save();render()};
+render();
+</script>
+</body>
+</html>
